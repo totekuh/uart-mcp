@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "uart-mcp": {
+      "type": "stdio",
+      "command": "uart-mcp",
+      "args": [],
+      "env": {}
+    }
+  }
+}
