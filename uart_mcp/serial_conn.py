@@ -15,7 +15,6 @@ class SerialConnection:
     def __init__(self) -> None:
         self.port = os.environ.get("UART_PORT", "/dev/ttyUSB0")
         self.baud = int(os.environ.get("UART_BAUD", "115200"))
-        self.prompt = os.environ.get("UART_PROMPT", "# ")
         self._ser: serial.Serial | None = None
         self._lock = threading.Lock()
         self._log_thread: threading.Thread | None = None

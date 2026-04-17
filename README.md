@@ -22,7 +22,6 @@ By default it connects to `/dev/ttyUSB0` at `115200` baud. Override with environ
 |---|---|---|
 | `UART_PORT` | `/dev/ttyUSB0` | Serial port path |
 | `UART_BAUD` | `115200` | Baud rate |
-| `UART_PROMPT` | `# ` | Shell prompt pattern |
 
 ## Tools
 
