@@ -1,5 +1,4 @@
 import logging
-import os
 import threading
 import time
 
@@ -8,13 +7,16 @@ import serial.tools.list_ports
 
 logger = logging.getLogger(__name__)
 
+DEFAULT_PORT = "/dev/ttyUSB0"
+DEFAULT_BAUD = 115200
+
 
 class SerialConnection:
     """Manages a persistent UART serial connection with lazy connect and auto-reconnect."""
 
     def __init__(self) -> None:
-        self.port = os.environ.get("UART_PORT", "/dev/ttyUSB0")
-        self.baud = int(os.environ.get("UART_BAUD", "115200"))
+        self.port = DEFAULT_PORT
+        self.baud = DEFAULT_BAUD
         self._ser: serial.Serial | None = None
         self._lock = threading.Lock()
         self._log_thread: threading.Thread | None = None

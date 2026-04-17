@@ -16,12 +16,11 @@ Requires Python 3.10+.
 claude mcp add --transport stdio --scope project uart-mcp -- uart-mcp
 ```
 
-By default it connects to `/dev/ttyUSB0` at `115200` baud. Override with environment variables:
+By default it connects to `/dev/ttyUSB0` at `115200` baud. To use a different port or baud rate, call `uart_configure` — it both establishes the initial connection and reconfigures it later:
 
-| Variable | Default | Description |
-|---|---|---|
-| `UART_PORT` | `/dev/ttyUSB0` | Serial port path |
-| `UART_BAUD` | `115200` | Baud rate |
+```
+uart_configure(port="/dev/ttyUSB1", baud=9600)
+```
 
 ## Tools
 

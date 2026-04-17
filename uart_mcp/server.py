@@ -74,12 +74,12 @@ def uart_break(duration: float = 0.25) -> str:
 
 @mcp.tool()
 def uart_configure(port: str | None = None, baud: int | None = None) -> str:
-    """Reconfigure the UART connection at runtime.
+    """Establish or reconfigure the UART connection.
 
-    Provide `port`, `baud`, or both. The current connection is closed and
-    reopened with the new settings. Useful for switching adapters, or for
-    devices that change speed between stages (e.g. bootloader at 9600,
-    Linux at 115200).
+    Provide `port`, `baud`, or both. If a connection is already open, it's
+    closed and reopened with the new settings. This is the sole mechanism
+    for changing port/baud — useful for switching adapters, or for devices
+    that change speed between stages (e.g. bootloader at 9600, Linux at 115200).
     """
     try:
         conn.configure(port=port, baud=baud)

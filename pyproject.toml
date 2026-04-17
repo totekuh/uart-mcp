@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "uart-mcp"
-version = "0.2.0"
+version = "0.3.0"
 description = "MCP server bridging Claude Code to a UART serial shell"
 readme = "README.md"
 license = "MIT"
