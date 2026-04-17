@@ -57,6 +57,79 @@ def uart_write(data: str) -> str:
 
 
 @mcp.tool()
+def uart_break(duration: float = 0.25) -> str:
+    """Send a serial BREAK signal on the UART line.
+
+    Useful for interrupting bootloaders (e.g. U-Boot), escaping hung states,
+    or triggering SysRq on Linux. This is a real UART-level signal, not a
+    character — it holds TX low for the specified duration.
+    """
+    try:
+        conn.send_break(duration)
+        return f"[OK] BREAK sent ({duration}s)"
+    except Exception as e:
+        logger.exception("uart_break failed")
+        return f"[ERROR] {e}"
+
+
+@mcp.tool()
+def uart_set_port(port: str) -> str:
+    """Change the UART serial port at runtime.
+
+    Closes the current connection and reopens on the new port.
+    Useful when switching between USB-serial adapters or devices.
+    """
+    try:
+        conn.set_port(port)
+        return f"[OK] Port changed to {port}"
+    except Exception as e:
+        logger.exception("uart_set_port failed")
+        return f"[ERROR] {e}"
+
+
+@mcp.tool()
+def uart_set_baud(baud: int) -> str:
+    """Change the UART baud rate at runtime.
+
+    Closes and reopens the serial port at the new baud rate.
+    Useful when the device switches speeds (e.g. bootloader at 9600,
+    Linux at 115200).
+    """
+    try:
+        conn.set_baud(baud)
+        return f"[OK] Baud rate changed to {baud}"
+    except Exception as e:
+        logger.exception("uart_set_baud failed")
+        return f"[ERROR] {e}"
+
+
+@mcp.tool()
+def uart_log_start(path: str = "/tmp/uart.log") -> str:
+    """Start background capture of all serial output to a local file.
+
+    Runs in a background thread, capturing everything the device sends
+    (boot logs, kernel messages, crash dumps, etc.). Only one session at a time.
+    """
+    try:
+        conn.start_logging(path)
+        return f"[OK] Logging started → {path}"
+    except Exception as e:
+        logger.exception("uart_log_start failed")
+        return f"[ERROR] {e}"
+
+
+@mcp.tool()
+def uart_log_stop() -> str:
+    """Stop background serial logging and return the log file path."""
+    try:
+        path = conn.stop_logging()
+        return f"[OK] Logging stopped. File: {path}"
+    except Exception as e:
+        logger.exception("uart_log_stop failed")
+        return f"[ERROR] {e}"
+
+
+@mcp.tool()
 def uart_status() -> dict:
     """Check the UART serial connection status."""
     return conn.status()

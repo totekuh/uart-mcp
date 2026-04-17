@@ -8,3 +8,4 @@ build/
 .ruff_cache/
 CLAUDE.md
 .claude/
+.mcp.json

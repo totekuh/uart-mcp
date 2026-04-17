@@ -18,6 +18,9 @@ class SerialConnection:
         self.prompt = os.environ.get("UART_PROMPT", "# ")
         self._ser: serial.Serial | None = None
         self._lock = threading.Lock()
+        self._log_thread: threading.Thread | None = None
+        self._log_stop: threading.Event = threading.Event()
+        self._log_path: str | None = None
 
     def _connect(self) -> serial.Serial:
         """Open the serial port. Raises SerialException on failure."""
@@ -45,12 +48,7 @@ class SerialConnection:
 
     def _reconnect_once(self) -> serial.Serial:
         """Close and reopen the serial port. One attempt."""
-        if self._ser is not None:
-            try:
-                self._ser.close()
-            except Exception:
-                pass
-            self._ser = None
+        self._close_unlocked()
         self._ser = self._connect()
         return self._ser
 
@@ -153,6 +151,83 @@ class SerialConnection:
         output = text[start_idx:end_idx].strip()
         return output
 
+    def send_break(self, duration: float = 0.25) -> None:
+        """Send a serial BREAK signal. Acquires lock."""
+        with self._lock:
+            s = self._ensure_connected()
+            s.send_break(duration)
+
+    def set_baud(self, baud: int) -> None:
+        """Change baud rate by closing and reopening the port. Acquires lock."""
+        with self._lock:
+            self._close_unlocked()
+            self.baud = baud
+            self._ser = serial.Serial(self.port, baud, timeout=1)
+            logger.info("Reconnected to %s at %d baud", self.port, baud)
+
+    def set_port(self, port: str) -> None:
+        """Change serial port by closing and reopening. Acquires lock."""
+        with self._lock:
+            self._close_unlocked()
+            self.port = port
+            self._ser = serial.Serial(port, self.baud, timeout=1)
+            logger.info("Reconnected to %s at %d baud", port, self.baud)
+
+    def _close_unlocked(self) -> None:
+        """Close the serial port without acquiring lock. Caller must hold lock."""
+        if self._ser is not None:
+            try:
+                self._ser.close()
+            except Exception:
+                pass
+            self._ser = None
+
+    def start_logging(self, path: str) -> None:
+        """Start background capture of all serial output to a file.
+
+        Spawns a daemon thread that reads from serial and writes to the file.
+        Only one logging session at a time.
+        """
+        if self._log_thread is not None and self._log_thread.is_alive():
+            raise RuntimeError("Logging already active")
+        self._log_stop = threading.Event()
+        self._log_path = path
+        self._log_thread = threading.Thread(
+            target=self._log_worker, args=(path,), daemon=True
+        )
+        self._log_thread.start()
+        logger.info("Started logging to %s", path)
+
+    def stop_logging(self) -> str:
+        """Stop background logging and return the file path."""
+        if self._log_thread is None or not self._log_thread.is_alive():
+            raise RuntimeError("No active logging session")
+        self._log_stop.set()
+        self._log_thread.join(timeout=3)
+        self._log_thread = None
+        path = self._log_path or ""
+        self._log_path = None
+        logger.info("Stopped logging to %s", path)
+        return path
+
+    def _log_worker(self, path: str) -> None:
+        """Background worker that captures serial output to a file."""
+        with open(path, "a") as f:
+            while not self._log_stop.is_set():
+                with self._lock:
+                    s = self._ensure_connected()
+                    s.timeout = 0.1
+                    chunk = s.read(s.in_waiting or 1)
+                if chunk:
+                    f.write(chunk.decode(errors="replace"))
+                    f.flush()
+                else:
+                    time.sleep(0.05)
+
+    def logging_active(self) -> bool:
+        """Return whether background logging is active."""
+        return self._log_thread is not None and self._log_thread.is_alive()
+
     def reset_input(self) -> None:
         """Clear the serial input buffer. Acquires lock."""
         with self._lock:
@@ -166,4 +241,6 @@ class SerialConnection:
             "connected": connected,
             "port": self.port,
             "baud": self.baud,
+            "logging": self.logging_active(),
+            "log_path": self._log_path,
         }
