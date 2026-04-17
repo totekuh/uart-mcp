@@ -156,21 +156,21 @@ class SerialConnection:
             s = self._ensure_connected()
             s.send_break(duration)
 
-    def set_baud(self, baud: int) -> None:
-        """Change baud rate by closing and reopening the port. Acquires lock."""
-        with self._lock:
-            self._close_unlocked()
-            self.baud = baud
-            self._ser = serial.Serial(self.port, baud, timeout=1)
-            logger.info("Reconnected to %s at %d baud", self.port, baud)
+    def configure(self, port: str | None = None, baud: int | None = None) -> None:
+        """Reconfigure port and/or baud rate, reopening the connection. Acquires lock.
 
-    def set_port(self, port: str) -> None:
-        """Change serial port by closing and reopening. Acquires lock."""
+        At least one of `port` or `baud` must be provided. Applies both atomically.
+        """
+        if port is None and baud is None:
+            raise ValueError("configure requires at least one of port or baud")
         with self._lock:
             self._close_unlocked()
-            self.port = port
-            self._ser = serial.Serial(port, self.baud, timeout=1)
-            logger.info("Reconnected to %s at %d baud", port, self.baud)
+            if port is not None:
+                self.port = port
+            if baud is not None:
+                self.baud = baud
+            self._ser = serial.Serial(self.port, self.baud, timeout=1)
+            logger.info("Reconnected to %s at %d baud", self.port, self.baud)
 
     def _close_unlocked(self) -> None:
         """Close the serial port without acquiring lock. Caller must hold lock."""

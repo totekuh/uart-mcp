@@ -73,33 +73,19 @@ def uart_break(duration: float = 0.25) -> str:
 
 
 @mcp.tool()
-def uart_set_port(port: str) -> str:
-    """Change the UART serial port at runtime.
+def uart_configure(port: str | None = None, baud: int | None = None) -> str:
+    """Reconfigure the UART connection at runtime.
 
-    Closes the current connection and reopens on the new port.
-    Useful when switching between USB-serial adapters or devices.
-    """
-    try:
-        conn.set_port(port)
-        return f"[OK] Port changed to {port}"
-    except Exception as e:
-        logger.exception("uart_set_port failed")
-        return f"[ERROR] {e}"
-
-
-@mcp.tool()
-def uart_set_baud(baud: int) -> str:
-    """Change the UART baud rate at runtime.
-
-    Closes and reopens the serial port at the new baud rate.
-    Useful when the device switches speeds (e.g. bootloader at 9600,
+    Provide `port`, `baud`, or both. The current connection is closed and
+    reopened with the new settings. Useful for switching adapters, or for
+    devices that change speed between stages (e.g. bootloader at 9600,
     Linux at 115200).
     """
     try:
-        conn.set_baud(baud)
-        return f"[OK] Baud rate changed to {baud}"
+        conn.configure(port=port, baud=baud)
+        return f"[OK] Reconfigured → port={conn.port} baud={conn.baud}"
     except Exception as e:
-        logger.exception("uart_set_baud failed")
+        logger.exception("uart_configure failed")
         return f"[ERROR] {e}"
 
 
